@@ -65,7 +65,7 @@ class ElasticSearchModel(DotDict):
             self.update(item.pop("_source", DotDict()))
             self.update(item.pop("fields", {}))
             self.meta = DotDict([(k.lstrip("_"), v) for k, v in item.items()])
-            self.meta.parent = self.pop("_parent", None) 
+            self.meta.parent = self.pop("_parent", None)
             self.meta.connection = args[0]
         else:
             self.update(dict(*args, **kwargs))
@@ -131,7 +131,7 @@ class ESJsonEncoder(json.JSONEncoder):
     def default(self, value):
         """Convert rogue and mysterious data types.
         Conversion notes:
-        
+
         - ``datetime.date`` and ``datetime.datetime`` objects are
         converted into datetime strings.
         """
@@ -190,7 +190,7 @@ class ES(object):
                  model=ElasticSearchModel):
         """
         Init a es object
-        
+
         server: the server name, it can be a list of servers
         timeout: timeout for a call
         bulk_size: size of bulk operation
@@ -301,6 +301,7 @@ class ES(object):
                 body = json.dumps(body, cls=self.encoder)
         else:
             body = ""
+        log.error('PYES: url: %s, parameters: %s, headers: %s, body: %s', path, params, headers, body)
         request = RestRequest(method=Method._NAMES_TO_VALUES[method.upper()],
                               uri=path, parameters=params, headers=headers, body=body)
         if self.dump_curl is not None:
@@ -327,6 +328,7 @@ class ES(object):
                 # in the exception.
                 raise ElasticSearchException(response.body, response.status, response.body)
         if response.status != 200:
+            log.error('PYES: response content %s', response.content)
             raise_if_error(response.status, decoded)
         if isinstance(decoded, dict):
             decoded = DotDict(decoded)
@@ -579,7 +581,7 @@ class ES(object):
     def refresh(self, indices=None, timesleep=1):
         """
         Refresh one or more indices
-        
+
         timesleep: seconds to wait
         """
         self.force_bulk()
@@ -706,21 +708,21 @@ class ES(object):
         Request Parameters
 
         The cluster health API accepts the following request parameters:
-        
-        :param level: Can be one of cluster, indices or shards. Controls the 
-                        details level of the health information returned. 
+
+        :param level: Can be one of cluster, indices or shards. Controls the
+                        details level of the health information returned.
                         Defaults to *cluster*.
-        :param wait_for_status: One of green, yellow or red. Will wait (until 
-                                the timeout provided) until the status of the 
-                                cluster changes to the one provided. 
+        :param wait_for_status: One of green, yellow or red. Will wait (until
+                                the timeout provided) until the status of the
+                                cluster changes to the one provided.
                                 By default, will not wait for any status.
-        :param wait_for_relocating_shards: A number controlling to how many 
-                                           relocating shards to wait for. 
-                                           Usually will be 0 to indicate to 
-                                           wait till all relocation have 
+        :param wait_for_relocating_shards: A number controlling to how many
+                                           relocating shards to wait for.
+                                           Usually will be 0 to indicate to
+                                           wait till all relocation have
                                            happened. Defaults to not to wait.
-        :param timeout: A time based parameter controlling how long to wait 
-                        if one of the wait_for_XXX are provided. 
+        :param timeout: A time based parameter controlling how long to wait
+                        if one of the wait_for_XXX are provided.
                         Defaults to 30s.
         """
         path = self._make_path(["_cluster", "health"])
@@ -743,16 +745,16 @@ class ES(object):
         """
         Retrieve the :ref:`cluster state <es-guide-reference-api-admin-cluster-state>`.
 
-        :param filter_nodes: set to **true** to filter out the **nodes** part 
-                             of the response.                            
-        :param filter_routing_table: set to **true** to filter out the 
-                                     **routing_table** part of the response.                    
-        :param filter_metadata: set to **true** to filter out the **metadata** 
-                                part of the response.                         
-        :param filter_blocks: set to **true** to filter out the **blocks** 
-                              part of the response.                           
-        :param filter_indices: when not filtering metadata, a comma separated 
-                               list of indices to include in the response.   
+        :param filter_nodes: set to **true** to filter out the **nodes** part
+                             of the response.
+        :param filter_routing_table: set to **true** to filter out the
+                                     **routing_table** part of the response.
+        :param filter_metadata: set to **true** to filter out the **metadata**
+                                part of the response.
+        :param filter_blocks: set to **true** to filter out the **blocks**
+                              part of the response.
+        :param filter_indices: when not filtering metadata, a comma separated
+                               list of indices to include in the response.
 
         """
         path = self._make_path(["_cluster", "state"])
@@ -780,7 +782,7 @@ class ES(object):
 
     def cluster_nodes(self, nodes=None):
         """
-        The cluster :ref:`nodes info <es-guide-reference-api-admin-cluster-state>` API allows to retrieve one or more (or all) of 
+        The cluster :ref:`nodes info <es-guide-reference-api-admin-cluster-state>` API allows to retrieve one or more (or all) of
         the cluster nodes information.
         """
         parts = ["_cluster", "nodes"]
@@ -791,7 +793,7 @@ class ES(object):
 
     def cluster_stats(self, nodes=None):
         """
-        The cluster :ref:`nodes info <es-guide-reference-api-admin-cluster-nodes-stats>` API allows to retrieve one or more (or all) of 
+        The cluster :ref:`nodes info <es-guide-reference-api-admin-cluster-nodes-stats>` API allows to retrieve one or more (or all) of
         the cluster nodes information.
         """
         parts = ["_cluster", "nodes", "stats"]
@@ -880,9 +882,9 @@ class ES(object):
     def force_bulk(self):
         """
         Force executing of all bulk data.
-        
+
         Return the bulk response
-        
+
         If not item self.last_bulk_response to None and returns None
         """
         locked = self.bulk_lock.acquire(False)
@@ -997,11 +999,11 @@ class ES(object):
     def mget(self, ids, index=None, doc_type=None, routing=None, **get_params):
         """
         Get multi JSON documents.
-        
+
         ids can be:
             list of tuple: (index, type, id)
             list of ids: index and doc_type are required
-        
+
         """
         if len(ids) == 0:
             return []
@@ -1160,7 +1162,7 @@ class ES(object):
     def update_settings(self, index, newvalues):
         """
         Update Settings of an index.
-        
+
         """
         path = self._make_path([index, "_settings"])
         return self._send_request('PUT', path, newvalues)
@@ -1169,14 +1171,14 @@ class ES(object):
 #        """
 #        Extract terms and their document frequencies from one or more fields.
 #        The fields argument must be a list or tuple of fields.
-#        For valid query params see: 
+#        For valid query params see:
 #        http://www.elasticsearch.com/docs/elasticsearch/rest_api/terms/
 #        """
 #        indices = self._validate_indices(indices)
 #        path = self._make_path([','.join(indices), "_terms"])
 #        query_params['fields'] = ','.join(fields)
 #        return self._send_request('GET', path, params=query_params)
-#    
+#
     def morelikethis(self, index, doc_type, id, fields, **query_params):
         """
         Execute a "more like this" search query against one or more fields and get back search hits.
