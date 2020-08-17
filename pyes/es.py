@@ -328,7 +328,7 @@ class ES(object):
                 # in the exception.
                 raise ElasticSearchException(response.body, response.status, response.body)
         if response.status != 200:
-            log.error('PYES: response content %s', response.content)
+            log.error('PYES: response content %s', response.body)
             raise_if_error(response.status, decoded)
         if isinstance(decoded, dict):
             decoded = DotDict(decoded)
